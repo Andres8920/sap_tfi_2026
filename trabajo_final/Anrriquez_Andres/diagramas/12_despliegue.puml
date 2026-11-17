@@ -1,0 +1,39 @@
+@startuml
+!include estilo.iuml
+title Diagrama de despliegue – Lorebel v2.0
+skinparam nodesep 40
+skinparam ranksep 50
+
+node "PC de mostrador\n(taller)" as PC {
+  artifact "Navegador web\n(Chrome / Firefox / Edge)" as NAV
+}
+node "Dispositivo del cliente\n(celular / PC)" as CEL {
+  artifact "Navegador / app\nMercado Pago o MODO" as APP
+}
+node "Servidor de aplicación\n(VPS Linux)" as SRV {
+  node "Servidor web\nNginx / Apache + HTTPS" as WEB {
+    artifact "PHP 8.2 (FPM)\nLaravel 12 – Lorebel" as LAR
+  }
+  folder "storage/\n(fotos, comprobantes)" as FS
+}
+node "Servidor de base de datos" as DBS {
+  database "MySQL 8\n(reparaciones, pagos,\nauditorias, registro_sesiones)" as DB
+}
+cloud "Mercado Pago\n(Checkout Pro API)" as MP
+cloud "MODO\n(API de intención de pago)" as MO
+
+NAV --> WEB : HTTPS 443
+APP --> MP : HTTPS (checkout)
+APP --> MO : HTTPS (checkout / QR)
+LAR --> DB : TCP 3306
+LAR --> FS : sistema de archivos
+LAR --> MP : HTTPS REST\n(preferencias, consulta de pagos)
+LAR --> MO : HTTPS REST
+MP --> WEB : webhook HTTPS\n/webhooks/mercadopago
+MO --> WEB : webhook HTTPS\n/webhooks/modo
+note bottom of DBS
+  En el entorno de desarrollo la base puede ser
+  SQLite y el servidor se expone con un túnel
+  (ngrok) para recibir los webhooks (RES-06).
+end note
+@enduml

@@ -3,21 +3,25 @@
 left to right direction
 skinparam nodesep 25
 skinparam ranksep 40
-title Diagrama de robustez – CU-10 Registrar cobro de orden
+title Diagrama de robustez – CU-10 Registrar cobro de orden (curso básico, A1–A4)
 
 actor "Recepción / Caja" as Caja
-actor "Pasarela" as Pas
+actor "Cliente del taller" as Cli
+actor "Pasarela de pago" as Pas
 rectangle "Lorebel" {
 boundary "Pantalla detalle\nde orden" as B1
 boundary "Pantalla de cobro" as B2
 boundary "Checkout\npasarela" as B3
+boundary "Endpoint de\nnotificación (webhook)" as B5
 boundary "Comprobante\nde cobro" as B4
-control "Calcular máximo\ncobrable" as C1
+boundary "Formulario confirmar\ntransferencia" as B6
+control "Calcular máximo\ncobrable (saldo o\nseña 50 % – A4)" as C1
 control "Validar cobro\n(RN01..RN06)" as C2
-control "Calcular\nrecargo" as C3
+control "Calcular recargo\n(A1 crédito)" as C3
 control "Registrar pago\npendiente" as C4
 control "Iniciar en\npasarela" as C5
 control "Aplicar resultado\n(aprobar/rechazar)" as C6
+control "Confirmar\nacreditación (A2)" as C8
 control "Registrar\nauditoría" as C7
 entity "Orden" as E1
 entity "Pago" as E2
@@ -33,12 +37,20 @@ C2 --> C3
 C3 --> C4
 C4 --> E2
 C4 --> C5
-C5 --> B3 : MP / MODO
-Pas --> C6 : webhook / retorno
-B3 --> C6
+C5 --> B3 : MP / MODO (A3)
+Cli --> B3 : paga
+B3 --> C6 : retorno
+Pas --> B5 : notifica
+B5 --> C6
 C5 --> C6 : efectivo / tarjeta
+C5 --> B4 : transferencia (A2)
 C6 --> E2
-E2 --> C7
-C7 --> E3
 C6 --> B4
+Caja --> B6
+B6 --> C8 : nro. de operación
+C8 --> E2
+C4 --> C7
+C6 --> C7
+C8 --> C7
+C7 --> E3
 @enduml

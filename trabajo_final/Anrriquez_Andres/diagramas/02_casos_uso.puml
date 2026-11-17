@@ -4,6 +4,7 @@ left to right direction
 title Casos de uso – Iteración 2: Cobro de órdenes de reparación
 actor "Recepción / Caja" as Caja
 actor Administrador as Admin
+actor "Técnico" as Tec
 actor "Cliente del taller" as Cliente
 actor "Pasarela de pago\n(Mercado Pago / MODO)" as Pasarela <<sistema>>
 Admin -|> Caja
@@ -20,20 +21,36 @@ rectangle "Lorebel" {
   usecase "CU-19 Entregar equipo" as CU19
   usecase "CU-20 Verificar saldo\npendiente" as CU20
   usecase "CU-21 Registrar\nauditoría" as CU21
+  usecase "CU-22 Reporte de\nrecaudación" as CU22
+  usecase "CU-23 Reporte de\nproductividad de técnicos" as CU23
+  usecase "CU-24 Consultar\ntrazabilidad" as CU24
+  usecase "CU-25 Consultar auditoría\nde sesiones" as CU25
+  usecase "CU-26 Iniciar sesión" as CU26
+  usecase "CU-27 Cerrar sesión" as CU27
 }
 Caja --> CU10
 Caja --> CU15
 Caja --> CU16
 Caja --> CU18
 Caja --> CU19
+Caja --> CU22
+Caja --> CU23
+Caja --> CU26
+Caja --> CU27
+Tec --> CU26
+Tec --> CU27
 Admin --> CU17
+Admin --> CU24
+Admin --> CU25
 Cliente --> CU13
 Pasarela --> CU14
 CU10 ..> CU11 : <<include>>
 CU10 ..> CU21 : <<include>>
 CU12 ..> CU10 : <<extend>>\n[tarjeta de crédito]
 CU13 ..> CU10 : <<extend>>\n[Mercado Pago / MODO]
-CU13 ..> CU14 : <<include>>
 CU19 ..> CU20 : <<include>>
 CU15 ..> CU21 : <<include>>
+CU16 ..> CU21 : <<include>>
+CU17 ..> CU21 : <<include>>
+CU14 ..> CU21 : <<include>>
 @enduml

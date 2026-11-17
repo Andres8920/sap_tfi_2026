@@ -1,0 +1,80 @@
+@startuml
+!include estilo.iuml
+title Secuencia – CU-10 Registrar cobro de orden: curso básico (efectivo) y alternativos A1, A2, E2, E3
+autonumber
+actor "Caja" as U
+boundary "ordenes/show\n(Vista Blade)" as VO
+boundary "pagos/create\n(Vista Blade)" as V
+control "PagoController" as C
+control "PagoRequest" as R
+control "PagoService" as S
+entity "Reparacion" as O
+entity "Pago" as P
+control "PasarelaFactory" as F
+control "EfectivoPasarela /\nTarjetaPasarela /\nTransferenciaPasarela" as G
+database "MySQL" as DB
+
+U -> VO : presiona "Cobrar"
+VO -> C : GET /ordenes/{id}/cobrar
+C -> S : montoMaximoCobrable(orden)
+S -> O : saldo, pagos pendientes, estado
+O -> DB : SELECT reparaciones / pagos
+alt equipo no "Listo" ni "Entregado" (A4)
+  S --> C : máximo = 50 % del importe − cobrado − pendiente
+else
+  S --> C : máximo = saldo − pendiente de acreditar
+end
+C --> V : muestra estado de cuenta y monto propuesto
+U -> V : elige medio, monto (A1: cupón y cuotas)
+V -> C : POST /ordenes/{id}/pagos
+C -> R : validar formato
+alt datos inválidos (E2)
+  R --> V : errores por campo
+else datos válidos
+  R --> C : datos validados
+  C -> S : iniciarPago(orden, medio, monto, cuotas, referencia)
+  activate S
+  S -> DB : BEGIN TRANSACTION
+  S -> O : lockForUpdate()
+  O -> DB : SELECT ... FOR UPDATE
+  S -> S : validarPago()  [RN01..RN06]
+  alt regla violada (E3)
+    S -> DB : ROLLBACK
+    S --> C : ReglaNegocioException
+    C --> V : mensaje con la regla incumplida
+  else reglas cumplidas
+    S -> S : calcularRecargo()  (A1: 0 / 10 / 20 %)
+    S -> P : create(estado = pendiente)
+    P -> DB : INSERT pagos
+    P -> P : Auditable: registrar "alta"
+    S -> F : para(medio)
+    F --> S : estrategia del medio
+    S -> G : iniciar(pago)
+    alt efectivo o tarjeta con cupón
+      G --> S : ResultadoPasarela(aprobado)
+      S -> S : aplicarResultado() → aprobar()
+      S -> P : estado = aprobado, fecha_aprobacion
+      P -> DB : UPDATE pagos
+      P -> P : Auditable: registrar "modificacion"
+    else transferencia (A2)
+      G --> S : ResultadoPasarela(pendiente)
+      S -> P : queda pendiente (reserva el monto)
+    end
+    S -> DB : COMMIT
+    S --> C : [pago, resultado]
+    deactivate S
+    alt aprobado
+      C --> VO : "Cobro registrado", saldo actualizado
+    else transferencia pendiente
+      C --> U : comprobante con datos bancarios\ny formulario de confirmación
+      U -> C : POST /pagos/{id}/confirmar (nro. de operación)
+      C -> S : confirmarTransferencia(pago, nro)
+      S -> P : estado = aprobado, fecha_aprobacion
+      P -> DB : UPDATE pagos
+      P -> P : Auditable: registrar "modificacion"
+      C --> U : "Transferencia confirmada"
+    end
+  end
+end
+note over U, DB : El alternativo A3 (Mercado Pago / MODO) se detalla en 06_secuencia_cobro.puml
+@enduml
